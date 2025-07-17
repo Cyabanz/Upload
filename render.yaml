@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: discord-link-checker-bot
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: DB_PATH
+        value: ./database.sqlite
+      - key: PREFIX
+        value: "!"
+      - key: BOT_OWNER_ID
+        sync: false
+      - key: PROFANITY_API_URL
+        value: https://www.purgomalum.com/service/containsprofanity
+      - key: GLOBAL_CHAT_ENABLED
+        value: true
+      - key: LINK_CHECK_ENABLED
+        value: true
+      - key: SUSPICIOUS_DOMAINS
+        value: discord.gg,bit.ly,tinyurl.com
+      - key: PORT
+        value: 3000
