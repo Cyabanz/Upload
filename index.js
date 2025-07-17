@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, PartialType, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const cron = require('node-cron');
 
 // Import custom modules
@@ -19,7 +19,7 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildWebhooks
     ],
-    partials: [PartialType.Message, PartialType.Channel, PartialType.Reaction]
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
 // Initialize modules
