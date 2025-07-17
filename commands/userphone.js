@@ -245,11 +245,12 @@ class UserPhoneCommands {
         const embed = new EmbedBuilder()
             .setColor(0x3498db)
             .setTitle('📱 UserPhone Commands')
-            .setDescription('Manage your phone verification (Yggdrasil-like system)')
+            .setDescription('Global chat system - Talk to people across servers (Yggdrasil-like)')
             .addFields(
                 {
-                    name: '**Available Commands**',
+                    name: '**Global Chat Commands**',
                     value: [
+                        '`!userphone <message>` - Send a message to global chat',
                         '`!userphone register <phone_number>` - Register your phone number',
                         '`!userphone verify <code>` - Verify your phone number with the code',
                         '`!userphone status` - Check your phone verification status',
@@ -270,7 +271,7 @@ class UserPhoneCommands {
                 {
                     name: '**Benefits of Verification**',
                     value: [
-                        '✅ Access to global chat',
+                        '✅ Access to global chat across all servers',
                         '✅ Enhanced security features',
                         '✅ Trusted user status',
                         '✅ Additional bot features'
@@ -278,27 +279,41 @@ class UserPhoneCommands {
                     inline: false
                 }
             )
-            .setFooter({ text: 'UserPhone System | Secure phone verification for Discord' });
+            .setFooter({ text: 'UserPhone System | Global chat across Discord servers' });
 
         return message.reply({ embeds: [embed] });
     }
 
     async handleUserPhoneCommand(message, args) {
-        const subcommand = args[0]?.toLowerCase();
-        const subArgs = args.slice(1);
+        // If no subcommand is provided, treat it as a message to send to global chat
+        if (args.length === 0) {
+            return this.handleUserPhoneHelp(message, args);
+        }
 
-        switch (subcommand) {
-            case 'register':
-                return this.handleUserPhoneRegister(message, subArgs);
-            case 'verify':
-                return this.handleUserPhoneVerify(message, subArgs);
-            case 'status':
-                return this.handleUserPhoneStatus(message, subArgs);
-            case 'update':
-                return this.handleUserPhoneUpdate(message, subArgs);
-            case 'help':
-            default:
-                return this.handleUserPhoneHelp(message, subArgs);
+        const subcommand = args[0]?.toLowerCase();
+        
+        // Check if this is a subcommand or a message
+        const isSubcommand = ['register', 'verify', 'status', 'update', 'help'].includes(subcommand);
+        
+        if (isSubcommand) {
+            const subArgs = args.slice(1);
+            
+            switch (subcommand) {
+                case 'register':
+                    return this.handleUserPhoneRegister(message, subArgs);
+                case 'verify':
+                    return this.handleUserPhoneVerify(message, subArgs);
+                case 'status':
+                    return this.handleUserPhoneStatus(message, subArgs);
+                case 'update':
+                    return this.handleUserPhoneUpdate(message, subArgs);
+                case 'help':
+                default:
+                    return this.handleUserPhoneHelp(message, subArgs);
+            }
+        } else {
+            // Treat as a message to send to global chat
+            return this.handleUserPhoneMessage(message, args);
         }
     }
 
@@ -310,6 +325,60 @@ class UserPhoneCommands {
         } catch (error) {
             console.error('Error checking user verification:', error);
             return false;
+        }
+    }
+
+    // Handle sending messages to global chat
+    async handleUserPhoneMessage(message, args) {
+        const messageContent = args.join(' ');
+        
+        if (!messageContent) {
+            return message.reply('❌ Please provide a message to send to global chat.\nUsage: `!userphone <message>`');
+        }
+
+        try {
+            // Check if user is verified
+            const isVerified = await this.isUserVerified(message.author.id);
+            if (!isVerified) {
+                return message.reply('❌ You need to verify your phone number to use global chat.\nUse `!userphone register <phone_number>` to get started.');
+            }
+
+            // Check if user is banned from global chat
+            const isBanned = await this.db.isUserBannedFromGlobalChat(message.author.id);
+            if (isBanned) {
+                return message.reply('❌ You are banned from global chat.');
+            }
+
+            // Send message to global chat network
+            const globalChat = require('../utils/globalChat');
+            const globalChatInstance = new globalChat(this.db, require('../utils/profanityFilter'));
+            
+            const result = await globalChatInstance.sendGlobalMessage(message, message.guild.id);
+            
+            if (result.success) {
+                await message.react('📱');
+                
+                const embed = new EmbedBuilder()
+                    .setColor(0x00ff00)
+                    .setTitle('📱 Message Sent to Global Chat')
+                    .setDescription(`Your message has been sent to all connected servers!`)
+                    .addFields(
+                        { name: 'Message', value: messageContent.length > 1024 ? messageContent.substring(0, 1021) + '...' : messageContent, inline: false },
+                        { name: 'Sent by', value: message.author.toString(), inline: true },
+                        { name: 'Server', value: message.guild.name, inline: true }
+                    )
+                    .setTimestamp();
+
+                await message.reply({ embeds: [embed] });
+            } else {
+                await message.react('❌');
+                await message.reply(`❌ Failed to send message to global chat: ${result.reason}`);
+            }
+
+        } catch (error) {
+            console.error('Error sending userphone message:', error);
+            await message.react('⚠️');
+            await message.reply('❌ An error occurred while sending your message to global chat.');
         }
     }
 

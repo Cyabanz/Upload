@@ -91,6 +91,10 @@ async function handleCommand(message) {
             await globalChatCommands.handleGlobalChatCommand(message, args);
             break;
 
+        case 'globalchatset':
+            await globalChatCommands.handleGlobalChatSet(message, args);
+            break;
+
         case 'userphone':
         case 'phone':
             await userPhoneCommands.handleUserPhoneCommand(message, args);
@@ -242,6 +246,7 @@ async function handleHelpCommand(message, args) {
             {
                 name: '🌐 Global Chat',
                 value: [
+                    '`!globalchatset #channel` - Set channel as global chat (Yggdrasil style)',
                     '`!globalchat enable` - Enable global chat in current channel',
                     '`!globalchat disable` - Disable global chat',
                     '`!globalchat stats` - View network statistics',
@@ -251,12 +256,13 @@ async function handleHelpCommand(message, args) {
                 inline: false
             },
             {
-                name: '📱 User Phone Verification',
+                name: '📱 UserPhone Global Chat',
                 value: [
+                    '`!userphone <message>` - Send message to global chat',
                     '`!userphone register <phone>` - Register phone number',
                     '`!userphone verify <code>` - Verify with SMS code',
                     '`!userphone status` - Check verification status',
-                    '`!userphone help` - Phone system help'
+                    '`!userphone help` - UserPhone system help'
                 ].join('\n'),
                 inline: false
             },
