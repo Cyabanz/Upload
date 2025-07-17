@@ -63,6 +63,63 @@ class GlobalChatCommands {
         }
     }
 
+    async handleGlobalChatSet(message, args) {
+        // Check permissions
+        if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+            return message.reply('❌ You need **Manage Server** permission to use this command.');
+        }
+
+        try {
+            const channel = message.mentions.channels.first();
+            
+            if (!channel) {
+                return message.reply('❌ Please mention a channel to set as global chat.\nUsage: `!globalchatset #channel`');
+            }
+            
+            // Check if bot has webhook permissions
+            if (!channel.permissionsFor(message.guild.members.me).has(PermissionFlagsBits.ManageWebhooks)) {
+                return message.reply('❌ I need **Manage Webhooks** permission in that channel to set it as global chat.');
+            }
+
+            const success = await this.globalChat.enableGlobalChat(message.guild, channel);
+            
+            if (success) {
+                const embed = new EmbedBuilder()
+                    .setColor(0x00ff00)
+                    .setTitle('🌐 Global Chat Channel Set')
+                    .setDescription(`${channel} has been set as the global chat channel for this server!`)
+                    .addFields(
+                        { name: 'Channel', value: channel.toString(), inline: true },
+                        { name: 'Set by', value: message.author.toString(), inline: true },
+                        { name: 'Server', value: message.guild.name, inline: true }
+                    )
+                    .setTimestamp();
+
+                await message.reply({ embeds: [embed] });
+
+                // Send welcome message to global chat
+                const welcomeMessage = await channel.send({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(0x3498db)
+                            .setTitle('🌐 Global Chat Channel Activated!')
+                            .setDescription('This channel is now connected to the global chat network. Messages sent here will be shared across all connected servers.')
+                            .addFields(
+                                { name: '📋 Rules', value: '• Be respectful to users from other servers\n• No spam or excessive messages\n• Follow Discord ToS and server rules\n• Inappropriate content will be filtered', inline: false },
+                                { name: '🔧 Commands', value: '• `!globalchat disable` - Disable global chat\n• `!globalchat stats` - View network statistics\n• `!userphone` - Talk to people across servers', inline: false }
+                            )
+                            .setFooter({ text: `Server: ${message.guild.name}`, iconURL: message.guild.iconURL() })
+                    ]
+                });
+            } else {
+                return message.reply('❌ Failed to set global chat channel. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error setting global chat channel:', error);
+            return message.reply('❌ An error occurred while setting the global chat channel.');
+        }
+    }
+
     async handleGlobalChatDisable(message, args) {
         // Check permissions
         if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
@@ -220,7 +277,8 @@ class GlobalChatCommands {
                 {
                     name: '**Basic Commands**',
                     value: [
-                        '`!globalchat enable [#channel]` - Enable global chat',
+                        '`!globalchatset #channel` - Set a channel as global chat (Yggdrasil style)',
+                        '`!globalchat enable [#channel]` - Enable global chat (legacy)',
                         '`!globalchat disable` - Disable global chat',
                         '`!globalchat stats` - View network statistics',
                         '`!globalchat help` - Show this help message'
@@ -257,6 +315,9 @@ class GlobalChatCommands {
         switch (subcommand) {
             case 'enable':
                 return this.handleGlobalChatEnable(message, subArgs);
+            case 'set':
+            case 'globalchatset':
+                return this.handleGlobalChatSet(message, subArgs);
             case 'disable':
                 return this.handleGlobalChatDisable(message, subArgs);
             case 'stats':
